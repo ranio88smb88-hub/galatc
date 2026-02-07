@@ -1,0 +1,145 @@
+// Di dalam class StaffPermissionSystem, tambahkan:
+
+loadAllHistory() {
+    const startDate = document.getElementById('history-start-date')?.value;
+    const endDate = document.getElementById('history-end-date')?.value;
+    const staffFilter = document.getElementById('history-staff-filter')?.value;
+    const jobdeskFilter = document.getElementById('history-jobdesk-filter')?.value;
+    const typeFilter = document.getElementById('history-type-filter')?.value;
+    const statusFilter = document.getElementById('history-status-filter')?.value;
+    
+    // Ambil semua data staff
+    const allStaff = this.staffManager.getAllStaff();
+    let allPermissions = [];
+    
+    // Kumpulkan semua permissions dari semua staff
+    allStaff.forEach(staff => {
+        if (staff.permissions && staff.permissions.length > 0) {
+            staff.permissions.forEach(perm => {
+                allPermissions.push({
+                    ...perm,
+                    staffName: staff.name,
+                    staffId: staff.id,
+                    staffShift: staff.shift
+                });
+            });
+        }
+    });
+    
+    // Filter berdasarkan criteria
+    let filtered = allPermissions.filter(perm => {
+        // Filter tanggal
+        if (startDate && endDate) {
+            const permDate = new Date(perm.startTime).toISOString().split('T')[0];
+            if (permDate < startDate || permDate > endDate) return false;
+        }
+        
+        // Filter staff
+        if (staffFilter && perm.staffId.toString() !== staffFilter) return false;
+        
+        // Filter jobdesk
+        if (jobdeskFilter && perm.jobdesk !== jobdeskFilter) return false;
+        
+        // Filter type
+        if (typeFilter && perm.type !== typeFilter) return false;
+        
+        // Filter status
+        if (statusFilter === 'active' && perm.ended) return false;
+        if (statusFilter === 'ended' && !perm.ended) return false;
+        
+        return true;
+    });
+    
+    // Sort by date (newest first)
+    filtered.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    
+    // Update statistics
+    this.updateHistoryStats(filtered);
+    
+    // Render history list
+    this.renderAllHistory(filtered);
+}
+
+updateHistoryStats(permissions) {
+    const container = document.getElementById('history-stats');
+    if (!container) return;
+    
+    const total = permissions.length;
+    const regular = permissions.filter(p => p.type === 'regular').length;
+    const meal = permissions.filter(p => p.type === 'meal').length;
+    const active = permissions.filter(p => !p.ended).length;
+    
+    container.innerHTML = `
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h4><i class="fas fa-list-alt"></i> Total Izin</h4>
+                <p class="stat-number">${total}</p>
+            </div>
+            <div class="stat-item">
+                <h4><i class="fas fa-stopwatch"></i> Izin Regular</h4>
+                <p class="stat-number">${regular}</p>
+            </div>
+            <div class="stat-item">
+                <h4><i class="fas fa-utensils"></i> Izin Makan</h4>
+                <p class="stat-number">${meal}</p>
+            </div>
+            <div class="stat-item">
+                <h4><i class="fas fa-user-clock"></i> Sedang Izin</h4>
+                <p class="stat-number">${active}</p>
+            </div>
+        </div>
+    `;
+}
+
+renderAllHistory(permissions) {
+    const container = document.getElementById('all-history-list');
+    if (!container) return;
+    
+    if (permissions.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-history"></i>
+                <p>Tidak ada data izin</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    permissions.forEach(perm => {
+        const startTime = new Date(perm.startTime);
+        const timeString = startTime.toLocaleString('id-ID', {
+            weekday: 'short',
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        const typeClass = perm.type === 'regular' ? 'regular' : 'meal';
+        const typeText = perm.type === 'regular' ? `Izin ${perm.duration}m` : `Makan ${perm.duration}m`;
+        
+        const item = document.createElement('div');
+        item.className = `history-item ${typeClass}`;
+        item.innerHTML = `
+            <div class="history-header">
+                <div>
+                    <span class="history-type ${typeClass}">${typeText}</span>
+                    <span class="history-staff">👤 ${perm.staffName}</span>
+                </div>
+                <span class="history-time">${timeString}</span>
+            </div>
+            <div class="history-details">
+                <p><strong>Shift:</strong> ${perm.staffShift} | <strong>Jobdesk:</strong> ${this.jobdeskManager.getJobdesk(perm.jobdesk)?.name || perm.jobdesk}</p>
+                ${perm.note ? `<p><strong>Keterangan:</strong> ${perm.note}</p>` : ''}
+                <div class="history-footer">
+                    <small>ID: ${perm.id} | Status: ${perm.ended ? '✅ Selesai' : '⏳ Aktif'}</small>
+                    ${perm.endTime ? `<small> | Selesai: ${new Date(perm.endTime).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</small>` : ''}
+                </div>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
