@@ -136,7 +136,7 @@ class StaffManager {
                 username: 'staff1',
                 password: 'staff123',
                 name: 'Ahmad Rizki',
-                shift: '05:00',
+                shift: '07:00',
                 quota: {
                     regular: 4,
                     meal: 3,
@@ -1819,3 +1819,4 @@ class StaffPermissionSystem {
 document.addEventListener('DOMContentLoaded', () => {
     window.staffSystem = new StaffPermissionSystem();
 });
+
