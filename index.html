@@ -1,145 +1,805 @@
-// Di dalam class StaffPermissionSystem, tambahkan:
-
-loadAllHistory() {
-    const startDate = document.getElementById('history-start-date')?.value;
-    const endDate = document.getElementById('history-end-date')?.value;
-    const staffFilter = document.getElementById('history-staff-filter')?.value;
-    const jobdeskFilter = document.getElementById('history-jobdesk-filter')?.value;
-    const typeFilter = document.getElementById('history-type-filter')?.value;
-    const statusFilter = document.getElementById('history-status-filter')?.value;
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Permission System - Galactic Control</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Background Elements -->
+    <div id="stars"></div>
+    <div id="stars2"></div>
+    <div id="stars3"></div>
+    <div class="planet planet-1"></div>
+    <div class="planet planet-2"></div>
+    <div class="planet planet-3"></div>
     
-    // Ambil semua data staff
-    const allStaff = this.staffManager.getAllStaff();
-    let allPermissions = [];
-    
-    // Kumpulkan semua permissions dari semua staff
-    allStaff.forEach(staff => {
-        if (staff.permissions && staff.permissions.length > 0) {
-            staff.permissions.forEach(perm => {
-                allPermissions.push({
-                    ...perm,
-                    staffName: staff.name,
-                    staffId: staff.id,
-                    staffShift: staff.shift
-                });
-            });
-        }
-    });
-    
-    // Filter berdasarkan criteria
-    let filtered = allPermissions.filter(perm => {
-        // Filter tanggal
-        if (startDate && endDate) {
-            const permDate = new Date(perm.startTime).toISOString().split('T')[0];
-            if (permDate < startDate || permDate > endDate) return false;
-        }
-        
-        // Filter staff
-        if (staffFilter && perm.staffId.toString() !== staffFilter) return false;
-        
-        // Filter jobdesk
-        if (jobdeskFilter && perm.jobdesk !== jobdeskFilter) return false;
-        
-        // Filter type
-        if (typeFilter && perm.type !== typeFilter) return false;
-        
-        // Filter status
-        if (statusFilter === 'active' && perm.ended) return false;
-        if (statusFilter === 'ended' && !perm.ended) return false;
-        
-        return true;
-    });
-    
-    // Sort by date (newest first)
-    filtered.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-    
-    // Update statistics
-    this.updateHistoryStats(filtered);
-    
-    // Render history list
-    this.renderAllHistory(filtered);
-}
-
-updateHistoryStats(permissions) {
-    const container = document.getElementById('history-stats');
-    if (!container) return;
-    
-    const total = permissions.length;
-    const regular = permissions.filter(p => p.type === 'regular').length;
-    const meal = permissions.filter(p => p.type === 'meal').length;
-    const active = permissions.filter(p => !p.ended).length;
-    
-    container.innerHTML = `
-        <div class="stats-grid">
-            <div class="stat-item">
-                <h4><i class="fas fa-list-alt"></i> Total Izin</h4>
-                <p class="stat-number">${total}</p>
-            </div>
-            <div class="stat-item">
-                <h4><i class="fas fa-stopwatch"></i> Izin Regular</h4>
-                <p class="stat-number">${regular}</p>
-            </div>
-            <div class="stat-item">
-                <h4><i class="fas fa-utensils"></i> Izin Makan</h4>
-                <p class="stat-number">${meal}</p>
-            </div>
-            <div class="stat-item">
-                <h4><i class="fas fa-user-clock"></i> Sedang Izin</h4>
-                <p class="stat-number">${active}</p>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <div class="logo">
+                    <i class="fas fa-user-astronaut"></i>
+                    <h1>GALACTIC STAFF CONTROL</h1>
+                    <p>Space-Themed Permission System</p>
+                </div>
+                
+                <div class="login-form">
+                    <h2><i class="fas fa-rocket"></i> LOGIN STAFF</h2>
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" placeholder="Username" autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-key"></i>
+                        <input type="password" id="password" placeholder="Password">
+                    </div>
+                    <div class="shift-info">
+                        <i class="fas fa-clock"></i>
+                        <span>Shift Login: 2 jam dari waktu shift</span>
+                    </div>
+                    <button id="login-btn" class="btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> LAUNCH LOGIN
+                    </button>
+                </div>
+                
+                <div class="system-info">
+                    <div class="info-card">
+                        <i class="fas fa-stopwatch"></i>
+                        <h3>4x Izin 15 menit</h3>
+                    </div>
+                    <div class="info-card">
+                        <i class="fas fa-utensils"></i>
+                        <h3>3x Makan 7 menit</h3>
+                    </div>
+                    <div class="info-card">
+                        <i class="fas fa-user-clock"></i>
+                        <h3>1 Jobdesk Aktif</h3>
+                    </div>
+                </div>
             </div>
         </div>
-    `;
-}
 
-renderAllHistory(permissions) {
-    const container = document.getElementById('all-history-list');
-    if (!container) return;
-    
-    if (permissions.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-history"></i>
-                <p>Tidak ada data izin</p>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = '';
-    
-    permissions.forEach(perm => {
-        const startTime = new Date(perm.startTime);
-        const timeString = startTime.toLocaleString('id-ID', {
-            weekday: 'short',
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        
-        const typeClass = perm.type === 'regular' ? 'regular' : 'meal';
-        const typeText = perm.type === 'regular' ? `Izin ${perm.duration}m` : `Makan ${perm.duration}m`;
-        
-        const item = document.createElement('div');
-        item.className = `history-item ${typeClass}`;
-        item.innerHTML = `
-            <div class="history-header">
-                <div>
-                    <span class="history-type ${typeClass}">${typeText}</span>
-                    <span class="history-staff">👤 ${perm.staffName}</span>
+        <!-- Dashboard Screen -->
+        <div id="dashboard-screen" class="screen">
+            <!-- Header -->
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <h1><i class="fas fa-satellite"></i> STAFF CONTROL CENTER</h1>
+                    <div class="digital-clock">
+                        <i class="fas fa-clock"></i>
+                        <span id="live-clock">00:00:00</span>
+                        <span id="live-date" style="margin-left: 10px; font-size: 14px;"></span>
+                    </div>
                 </div>
-                <span class="history-time">${timeString}</span>
-            </div>
-            <div class="history-details">
-                <p><strong>Shift:</strong> ${perm.staffShift} | <strong>Jobdesk:</strong> ${this.jobdeskManager.getJobdesk(perm.jobdesk)?.name || perm.jobdesk}</p>
-                ${perm.note ? `<p><strong>Keterangan:</strong> ${perm.note}</p>` : ''}
-                <div class="history-footer">
-                    <small>ID: ${perm.id} | Status: ${perm.ended ? '✅ Selesai' : '⏳ Aktif'}</small>
-                    ${perm.endTime ? `<small> | Selesai: ${new Date(perm.endTime).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</small>` : ''}
+                <div class="header-right">
+                    <!-- Admin Access Button -->
+                    <button class="admin-btn" id="admin-access-btn" style="display: none;">
+                        <i class="fas fa-user-shield"></i> ADMIN
+                    </button>
+                    
+                    <div class="staff-info">
+                        <i class="fas fa-user-astronaut"></i>
+                        <span id="staff-name">Staff Name</span>
+                    </div>
+                    
+                    <!-- Settings Button -->
+                    <div class="settings-btn" id="settings-btn" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    
+                    <button id="logout-btn" class="btn-secondary">
+                        <i class="fas fa-sign-out-alt"></i> LOGOUT
+                    </button>
+                </div>
+            </header>
+
+            <main class="dashboard-content">
+                <!-- Left Panel - Permission Controls -->
+                <div class="left-panel">
+                    <!-- Permission Quota -->
+                    <div class="quota-card">
+                        <h2><i class="fas fa-chart-pie"></i> KUOTA IZIN</h2>
+                        <div class="quota-grid">
+                            <div class="quota-item">
+                                <div class="quota-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                                    <i class="fas fa-stopwatch"></i>
+                                </div>
+                                <div class="quota-details">
+                                    <h3>Izin Regular</h3>
+                                    <div class="progress-bar">
+                                        <div class="progress" id="regular-progress" style="width: 0%"></div>
+                                    </div>
+                                    <p><span id="regular-used">0</span>/<span id="regular-total">4</span> tersisa <span id="regular-left">4</span></p>
+                                </div>
+                            </div>
+                            <div class="quota-item">
+                                <div class="quota-icon" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
+                                    <i class="fas fa-utensils"></i>
+                                </div>
+                                <div class="quota-details">
+                                    <h3>Izin Makan</h3>
+                                    <div class="progress-bar">
+                                        <div class="progress" id="meal-progress" style="width: 0%"></div>
+                                    </div>
+                                    <p><span id="meal-used">0</span>/<span id="meal-total">3</span> tersisa <span id="meal-left">3</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Permission Form -->
+                    <div class="permission-form-card">
+                        <h2><i class="fas fa-paper-plane"></i> AJUKAN IZIN</h2>
+                        <div class="form-group">
+                            <label><i class="fas fa-tasks"></i> Jobdesk</label>
+                            <select id="jobdesk-select">
+                                <option value="">Pilih Jobdesk</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-hourglass-half"></i> Jenis Izin</label>
+                            <div class="permission-buttons">
+                                <button class="permission-btn" data-type="regular" data-duration="15">
+                                    <i class="fas fa-stopwatch"></i>
+                                    <span>Izin <span class="duration">15</span> menit</span>
+                                    <small>(Tersisa: <span id="regular-left-btn">4</span>)</small>
+                                </button>
+                                <button class="permission-btn" data-type="meal" data-duration="7">
+                                    <i class="fas fa-utensils"></i>
+                                    <span>Izin Makan <span class="duration">7</span> menit</span>
+                                    <small>(Tersisa: <span id="meal-left-btn">3</span>)</small>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-comment-alt"></i> Keterangan</label>
+                            <textarea id="permission-note" placeholder="Tambahkan keterangan izin..." rows="3"></textarea>
+                        </div>
+                        
+                        <button id="submit-permission" class="btn-primary">
+                            <i class="fas fa-paper-plane"></i> KIRIM PERMISSION REQUEST
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Panel - Status & History -->
+                <div class="right-panel">
+                    <!-- Active Permissions -->
+                    <div class="status-card">
+                        <h2><i class="fas fa-user-clock"></i> STAFF SEDANG IZIN</h2>
+                        <div class="active-staff-list" id="active-staff-list">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Permission History -->
+                    <div class="history-card">
+                        <h2><i class="fas fa-history"></i> HISTORY IZIN</h2>
+                        <div class="history-controls">
+                            <input type="date" id="history-date" value="<?php echo date('Y-m-d'); ?>">
+                            <button id="refresh-history" class="btn-icon">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        <div class="history-list" id="history-list">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Current Permission Timer Overlay -->
+            <div class="timer-overlay" id="timer-overlay" style="display: none;">
+                <div class="timer-container">
+                    <div class="timer-header">
+                        <h3><i class="fas fa-clock"></i> IZIN SEDANG BERLANGSUNG</h3>
+                        <button id="close-timer" class="close-btn">&times;</button>
+                    </div>
+                    
+                    <div class="timer-display">
+                        <div class="timer-circle-container">
+                            <svg class="timer-svg" width="120" height="120" viewBox="0 0 120 120">
+                                <circle class="timer-circle-bg" cx="60" cy="60" r="54"></circle>
+                                <circle class="timer-circle" cx="60" cy="60" r="54"></circle>
+                            </svg>
+                            <div class="timer-text">
+                                <span id="timer-minutes">15</span>:<span id="timer-seconds">00</span>
+                            </div>
+                        </div>
+                        
+                        <div class="timer-info">
+                            <p><i class="fas fa-user"></i> <strong id="timer-staff">You</strong></p>
+                            <p><i class="fas fa-tasks"></i> Jobdesk: <strong id="timer-jobdesk">-</strong></p>
+                            <p><i class="fas fa-stopwatch"></i> Time Remaining: <strong id="time-remaining">15:00</strong></p>
+                        </div>
+                    </div>
+                    
+                    <button id="end-permission" class="btn-danger btn-full">
+                        <i class="fas fa-stop"></i> AKHIRI IZIN SEKARANG
+                    </button>
                 </div>
             </div>
-        `;
-        container.appendChild(item);
-    });
-}
+        </div>
+    </div>
+
+    <!-- Master Admin Modal -->
+    <div class="modal-overlay" id="master-modal" style="display: none;">
+        <div class="modal-card">
+            <h2><i class="fas fa-user-shield"></i> MASTER ADMIN ACCESS</h2>
+            <div class="modal-content">
+                <p>Masukkan master password untuk mengakses pengaturan sistem:</p>
+                <div class="input-group">
+                    <i class="fas fa-key"></i>
+                    <input type="password" id="master-password" placeholder="Master Password" autocomplete="off">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" id="cancel-master-btn">
+                        BATAL
+                    </button>
+                    <button class="btn-primary" id="master-login-btn">
+                        <i class="fas fa-unlock"></i> MASUK SEBAGAI ADMIN
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Overlay -->
+    <div class="settings-overlay" id="settings-overlay" style="display: none;">
+        <div class="settings-card">
+            <div class="settings-header">
+                <div class="admin-indicator" id="admin-indicator" style="display: none;">
+                    <i class="fas fa-user-shield"></i>
+                    <span>MASTER ADMIN MODE</span>
+                </div>
+                <h2><i class="fas fa-cog"></i> PENGATURAN SISTEM</h2>
+                <button class="btn-secondary" id="close-settings">
+                    <i class="fas fa-times"></i> TUTUP
+                </button>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="settings-tabs">
+                <button class="tab-btn active" data-tab="staff">
+                    <i class="fas fa-users"></i> Data Staff
+                </button>
+                <button class="tab-btn" data-tab="jobdesk">
+                    <i class="fas fa-tasks"></i> Jobdesk
+                </button>
+                <button class="tab-btn" data-tab="permission">
+                    <i class="fas fa-stopwatch"></i> Pengaturan Izin
+                </button>
+                <button class="tab-btn admin-tab" data-tab="sanctions">
+                    <i class="fas fa-gavel"></i> Sanksi
+                    <span class="admin-badge">ADMIN</span>
+                </button>
+                <button class="tab-btn admin-tab" data-tab="all-history">
+                    <i class="fas fa-history"></i> Semua History
+                    <span class="admin-badge">ADMIN</span>
+                </button>
+                <button class="tab-btn" data-tab="system">
+                    <i class="fas fa-sliders-h"></i> System
+                </button>
+                <button class="tab-btn" data-tab="backup">
+                    <i class="fas fa-database"></i> Backup
+                </button>
+            </div>
+            
+            <!-- Staff Management Tab -->
+            <div class="tab-content active" id="staff-tab">
+                <h3><i class="fas fa-users"></i> KELOLA DATA STAFF</h3>
+                
+                <!-- Add Staff Form -->
+                <div class="staff-form">
+                    <h4><i class="fas fa-user-plus"></i> TAMBAH STAFF BARU</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nama Lengkap *</label>
+                            <input type="text" id="new-staff-name" placeholder="Nama lengkap staff">
+                        </div>
+                        <div class="form-group">
+                            <label>Username *</label>
+                            <input type="text" id="new-staff-username" placeholder="Username untuk login">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Password *</label>
+                            <input type="password" id="new-staff-password" placeholder="Password login">
+                        </div>
+                        <div class="form-group">
+                            <label>Shift *</label>
+                            <select id="new-staff-shift">
+                                <option value="05:00">05:00 (Pagi A)</option>
+                                <option value="06:00">06:00 (Pagi B)</option>
+                                <option value="07:00">07:00 (Pagi C)</option>
+                                <option value="08:00">08:00 (Pagi D)</option>
+                                <option value="14:00">14:00 (Siang A)</option>
+                                <option value="15:00">15:00 (Siang B)</option>
+                                <option value="16:00">16:00 (Siang C)</option>
+                                <option value="22:00">22:00 (Malam A)</option>
+                                <option value="23:00">23:00 (Malam B)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Jabatan</label>
+                            <input type="text" id="new-staff-position" placeholder="Contoh: Kasir, Gudang, dll">
+                        </div>
+                        <div class="form-group">
+                            <label>No. HP</label>
+                            <input type="tel" id="new-staff-phone" placeholder="Nomor telepon">
+                        </div>
+                    </div>
+                    <button class="btn-sm btn-primary" id="add-staff-btn">
+                        <i class="fas fa-plus"></i> TAMBAH STAFF
+                    </button>
+                </div>
+                
+                <!-- Staff List -->
+                <div class="staff-list" id="staff-list">
+                    <!-- Data akan diisi JavaScript -->
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>Loading staff data...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Jobdesk Management Tab -->
+            <div class="tab-content" id="jobdesk-tab">
+                <h3><i class="fas fa-tasks"></i> KELOLA JOBDESK</h3>
+                
+                <!-- Add Jobdesk Form -->
+                <div class="jobdesk-form">
+                    <h4><i class="fas fa-plus-circle"></i> TAMBAH JOBDESK BARU</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Kode Jobdesk *</label>
+                            <input type="text" id="new-jobdesk-code" placeholder="Contoh: kasir, kitchen">
+                        </div>
+                        <div class="form-group">
+                            <label>Nama Jobdesk *</label>
+                            <input type="text" id="new-jobdesk-name" placeholder="Contoh: Kasir, Dapur">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Keterangan</label>
+                            <textarea id="new-jobdesk-desc" placeholder="Deskripsi jobdesk..." rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Warna</label>
+                            <input type="color" id="new-jobdesk-color" value="#4CAF50">
+                        </div>
+                    </div>
+                    <button class="btn-sm btn-primary" id="add-jobdesk-btn">
+                        <i class="fas fa-plus"></i> TAMBAH JOBDESK
+                    </button>
+                </div>
+                
+                <!-- Jobdesk List -->
+                <div class="jobdesk-list" id="jobdesk-list">
+                    <!-- Data akan diisi JavaScript -->
+                    <div class="empty-state">
+                        <i class="fas fa-tasks"></i>
+                        <p>Loading jobdesk data...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Permission Settings Tab -->
+            <div class="tab-content" id="permission-tab">
+                <h3><i class="fas fa-stopwatch"></i> PENGATURAN IZIN</h3>
+                
+                <div class="system-settings">
+                    <div class="setting-item">
+                        <h4><i class="fas fa-clock"></i> WAKTU LOGIN</h4>
+                        <p>Durasi login dari waktu shift</p>
+                        <div class="form-group">
+                            <select id="login-duration">
+                                <option value="1">1 Jam</option>
+                                <option value="2" selected>2 Jam</option>
+                                <option value="3">3 Jam</option>
+                                <option value="4">4 Jam</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h4><i class="fas fa-stopwatch"></i> KUOTA IZIN HARIAN</h4>
+                        <p>Jumlah izin per hari per staff</p>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Izin Regular</label>
+                                <input type="number" id="regular-quota" min="1" max="10" value="4">
+                            </div>
+                            <div class="form-group">
+                                <label>Izin Makan</label>
+                                <input type="number" id="meal-quota" min="1" max="10" value="3">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h4><i class="fas fa-hourglass-half"></i> DURASI IZIN</h4>
+                        <p>Lama waktu setiap izin</p>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Izin Regular (menit)</label>
+                                <input type="number" id="regular-duration" min="1" max="60" value="15">
+                            </div>
+                            <div class="form-group">
+                                <label>Izin Makan (menit)</label>
+                                <input type="number" id="meal-duration" min="1" max="30" value="7">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h4><i class="fas fa-calendar-alt"></i> PENGATURAN TAMBAHAN</h4>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="auto-reset-quota" checked>
+                                Auto reset kuota harian
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="allow-multiple-permissions">
+                                Izinkan multiple izin (dalam jobdesk berbeda)
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="notification-enabled" checked>
+                                Aktifkan notifikasi
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="auto-end-permission" checked>
+                                Otomatis akhiri izin ketika waktu habis
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="save-settings">
+                    <button class="btn-primary" id="save-permission-settings">
+                        <i class="fas fa-save"></i> SIMPAN PENGATURAN IZIN
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Sanctions Tab (Admin Only) -->
+            <div class="tab-content" id="sanctions-tab">
+                <h3><i class="fas fa-gavel"></i> PENGATURAN SANKSI</h3>
+                
+                <div class="sanctions-info">
+                    <p><i class="fas fa-info-circle"></i> Fitur ini hanya untuk admin master. Atur sanksi untuk pelanggaran.</p>
+                </div>
+                
+                <!-- Add Sanction Rule -->
+                <div class="staff-form">
+                    <h4><i class="fas fa-plus-circle"></i> TAMBAH ATURAN SANKSI</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Jenis Pelanggaran *</label>
+                            <select id="sanction-type">
+                                <option value="late">Terlambat Login</option>
+                                <option value="overstay">Izin Melebihi Waktu</option>
+                                <option value="no_permission">Izin Tanpa Persetujuan</option>
+                                <option value="quota_exceed">Melebihi Kuota Izin</option>
+                                <option value="jobdesk_violation">Pelanggaran Jobdesk</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tingkat Pelanggaran</label>
+                            <select id="sanction-level">
+                                <option value="warning">Peringatan</option>
+                                <option value="minor">Minor</option>
+                                <option value="major">Major</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Keterangan *</label>
+                            <textarea id="sanction-desc" placeholder="Deskripsi pelanggaran..." rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sanksi</label>
+                            <textarea id="sanction-penalty" placeholder="Jenis sanksi yang diberikan..." rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Poin Pelanggaran</label>
+                            <input type="number" id="sanction-points" min="1" max="100" value="10" placeholder="Poin">
+                        </div>
+                    </div>
+                    <button class="btn-sm btn-primary" id="add-sanction-btn">
+                        <i class="fas fa-plus"></i> TAMBAH ATURAN
+                    </button>
+                </div>
+                
+                <!-- Sanctions List -->
+                <div class="sanctions-list" id="sanctions-list">
+                    <div class="empty-state">
+                        <i class="fas fa-gavel"></i>
+                        <p>Belum ada aturan sanksi</p>
+                    </div>
+                </div>
+                
+                <!-- Staff Sanctions -->
+                <div class="sanctions-staff">
+                    <h4><i class="fas fa-user-times"></i> SANKSI STAFF</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Pilih Staff</label>
+                            <select id="staff-sanction-select">
+                                <option value="">-- Pilih Staff --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Jenis Pelanggaran</label>
+                            <select id="staff-sanction-type">
+                                <option value="">-- Pilih Pelanggaran --</option>
+                                <option value="late">Terlambat Login</option>
+                                <option value="overstay">Izin Melebihi Waktu</option>
+                                <option value="no_permission">Izin Tanpa Persetujuan</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-sm btn-primary" id="add-staff-sanction-btn">
+                        <i class="fas fa-user-slash"></i> TAMBAH SANKSI KE STAFF
+                    </button>
+                    
+                    <div class="staff-sanctions-list" id="staff-sanctions-list">
+                        <div class="empty-state">
+                            <i class="fas fa-user-check"></i>
+                            <p>Tidak ada sanksi untuk staff</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- All History Tab (Admin Only) -->
+            <div class="tab-content" id="all-history-tab">
+                <h3><i class="fas fa-history"></i> SEMUA HISTORY IZIN</h3>
+                
+                <div class="history-controls">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tanggal Mulai</label>
+                            <input type="date" id="history-start-date" value="<?php echo date('Y-m-d'); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Tanggal Akhir</label>
+                            <input type="date" id="history-end-date" value="<?php echo date('Y-m-d'); ?>">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Filter Staff</label>
+                            <select id="history-staff-filter">
+                                <option value="">Semua Staff</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Filter Jobdesk</label>
+                            <select id="history-jobdesk-filter">
+                                <option value="">Semua Jobdesk</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Filter Jenis Izin</label>
+                            <select id="history-type-filter">
+                                <option value="">Semua Jenis</option>
+                                <option value="regular">Izin Regular</option>
+                                <option value="meal">Izin Makan</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Filter Status</label>
+                            <select id="history-status-filter">
+                                <option value="">Semua Status</option>
+                                <option value="active">Aktif</option>
+                                <option value="ended">Selesai</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <button class="btn-primary" id="filter-history-btn">
+                            <i class="fas fa-filter"></i> FILTER HISTORY
+                        </button>
+                        <button class="btn-secondary" id="export-history-btn">
+                            <i class="fas fa-file-export"></i> EXPORT TO EXCEL
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Statistics -->
+                <div class="history-stats" id="history-stats">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fas fa-users"></i>
+                            <h4>Total Staff</h4>
+                            <p id="total-staff-count">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-stopwatch"></i>
+                            <h4>Total Izin</h4>
+                            <p id="total-permission-count">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-clock"></i>
+                            <h4>Waktu Rata-rata</h4>
+                            <p id="avg-duration">0m</p>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-utensils"></i>
+                            <h4>Izin Makan</h4>
+                            <p id="total-meal-count">0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- All Permissions List -->
+                <div class="all-history-list" id="all-history-list">
+                    <div class="empty-state">
+                        <i class="fas fa-history"></i>
+                        <p>Belum ada data history</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Settings Tab -->
+            <div class="tab-content" id="system-tab">
+                <h3><i class="fas fa-sliders-h"></i> PENGATURAN SISTEM</h3>
+                
+                <div class="system-settings">
+                    <div class="setting-item">
+                        <h4><i class="fas fa-language"></i> Bahasa Sistem</h4>
+                        <div class="form-group">
+                            <select id="system-language">
+                                <option value="id" selected>Bahasa Indonesia</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h4><i class="fas fa-palette"></i> Tema Tampilan</h4>
+                        <div class="form-group">
+                            <select id="system-theme">
+                                <option value="default" selected>Default (Dark Space)</option>
+                                <option value="light">Light Mode</option>
+                                <option value="blue">Blue Theme</option>
+                                <option value="green">Green Theme</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h4><i class="fas fa-bell"></i> Pengaturan Notifikasi</h4>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="sound-enabled" checked>
+                                Aktifkan suara notifikasi
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="desktop-notifications" checked>
+                                Desktop notifications
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h4><i class="fas fa-shield-alt"></i> Keamanan</h4>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="auto-logout" checked>
+                                Auto logout setelah 8 jam
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="login-attempt-limit" checked>
+                                Batas percobaan login (3x)
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>Master Password</label>
+                            <input type="password" id="change-master-password" placeholder="Ubah master password">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="save-settings">
+                    <button class="btn-primary" id="save-system-settings">
+                        <i class="fas fa-save"></i> SIMPAN PENGATURAN SISTEM
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Backup & Restore Tab -->
+            <div class="tab-content" id="backup-tab">
+                <h3><i class="fas fa-database"></i> BACKUP & RESTORE</h3>
+                
+                <div class="backup-section">
+                    <h4><i class="fas fa-file-export"></i> Backup Data</h4>
+                    <p>Download semua data sistem ke file JSON untuk cadangan.</p>
+                    <div class="backup-options">
+                        <button class="btn-primary" id="backup-all-btn">
+                            <i class="fas fa-download"></i> BACKUP SEMUA DATA
+                        </button>
+                        <button class="btn-secondary" id="backup-users-btn">
+                            <i class="fas fa-users"></i> BACKUP DATA STAFF
+                        </button>
+                        <button class="btn-secondary" id="backup-history-btn">
+                            <i class="fas fa-history"></i> BACKUP HISTORY
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="restore-section">
+                    <h4><i class="fas fa-file-import"></i> Restore Data</h4>
+                    <p>Upload file backup JSON untuk mengembalikan data.</p>
+                    <div class="form-group">
+                        <label>Pilih File Backup</label>
+                        <input type="file" id="restore-file" accept=".json">
+                    </div>
+                    <div class="restore-options">
+                        <button class="btn-primary" id="restore-btn" disabled>
+                            <i class="fas fa-upload"></i> RESTORE DATA
+                        </button>
+                        <button class="btn-danger" id="reset-all-btn">
+                            <i class="fas fa-trash-alt"></i> RESET SEMUA DATA
+                        </button>
+                    </div>
+                    <div class="warning-box">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p><strong>PERINGATAN:</strong> Reset akan menghapus semua data dan mengembalikan ke pengaturan awal.</p>
+                    </div>
+                </div>
+                
+                <div class="backup-history">
+                    <h4><i class="fas fa-history"></i> Riwayat Backup</h4>
+                    <div class="backup-list" id="backup-list">
+                        <div class="empty-state">
+                            <i class="fas fa-history"></i>
+                            <p>Belum ada riwayat backup</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/id.min.js"></script>
+    <script src="script.js"></script>
+    <script src="assets/stars-bg.js"></script>
+</body>
+</html>
